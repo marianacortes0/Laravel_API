@@ -88,52 +88,5 @@ class User
         return $user;
     }
 
-    /**
-     * Actualiza los campos proporcionados de un usuario existente.
-     * Retorna el usuario actualizado o null si no existe.
-     */
-    public static function update(int $id, array $data): ?self
-    {
-        self::init();
 
-        foreach (self::$users as $user) {
-            if ($user->id === $id) {
-                if (isset($data['name']))  $user->name  = $data['name'];
-                if (isset($data['email'])) $user->email = $data['email'];
-                if (isset($data['age']))   $user->age   = (int) $data['age'];
-                return $user;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Elimina un usuario por ID.
-     * Retorna true si fue eliminado, false si no existía.
-     */
-    public static function delete(int $id): bool
-    {
-        self::init();
-
-        foreach (self::$users as $index => $user) {
-            if ($user->id === $id) {
-                array_splice(self::$users, $index, 1);
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /** Serializa el objeto a array (útil para json()). */
-    public function toArray(): array
-    {
-        return [
-            'id'    => $this->id,
-            'name'  => $this->name,
-            'email' => $this->email,
-            'age'   => $this->age,
-        ];
-    }
 }
