@@ -50,43 +50,7 @@ class User
         self::$initialized = true;
     }
 
-    // -------------------------------------------------------
-    // Métodos de acceso al "repositorio"
-    // -------------------------------------------------------
 
-    /** Devuelve todos los usuarios. */
-    public static function all(): array
-    {
-        self::init();
-        return array_values(self::$users);
-    }
-
-    /** Busca un usuario por ID. Retorna null si no existe. */
-    public static function find(int $id): ?self
-    {
-        self::init();
-        foreach (self::$users as $user) {
-            if ($user->id === $id) {
-                return $user;
-            }
-        }
-        return null;
-    }
-
-    /** Crea y persiste un nuevo usuario. */
-    public static function create(string $name, string $email, int $age): self
-    {
-        self::init();
-
-        $newId = count(self::$users) > 0
-            ? max(array_map(fn($u) => $u->id, self::$users)) + 1
-            : 1;
-
-        $user = new self($newId, $name, $email, $age);
-        self::$users[] = $user;
-
-        return $user;
-    }
 
 
 }
