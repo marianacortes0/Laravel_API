@@ -28,10 +28,10 @@ class UserController extends Controller
         $users = User::all();
 
         return response()->json([
-            'success' => true,
-            'data'    => array_map(fn($u) => $u->toArray(), $users),
-            'total'   => count($users),
-        ]);
+    'success' => true,
+    'data'    => $users->toArray(),
+    'total'   => $users->count(),
+]);
     }
 
     // -------------------------------------------------------
@@ -75,7 +75,11 @@ class UserController extends Controller
             ], 400);
         }
 
-        $newUser = User::create($name, $email, (int) $age);
+       $newUser = User::create([
+    'name'  => $name,
+    'email' => $email,
+    'age'   => (int) $age,
+]);
 
         return response()->json([
             'success' => true,
@@ -97,14 +101,16 @@ class UserController extends Controller
             'age'   => $request->input('age'),
         ]);
 
-        $user = User::update($id, $data);
+        $user = User::find($id);
 
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'error'   => "Usuario con ID {$id} no encontrado",
-            ], 404);
-        }
+if (!$user) {
+    return response()->json([
+        'success' => false,
+        'error'   => "Usuario con ID {$id} no encontrado",
+    ], 404);
+}
+
+$user->update($data);
 
         return response()->json([
             'success' => true,
@@ -120,7 +126,8 @@ class UserController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        $deleted = User::delete($id);
+        $user = User::find($id);
+$deleted = $user ? $user->delete() : false;
 
         if (!$deleted) {
             return response()->json([
