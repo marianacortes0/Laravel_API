@@ -23,32 +23,7 @@ class User
         $this->age   = $age;
     }
 
-    // -------------------------------------------------------
-    // "Base de datos" simulada (equivalente al array users[])
-    // -------------------------------------------------------
 
-    /** @var self[] */
-    private static array $users = [];
-
-    private static bool $initialized = false;
-
-    /**
-     * Inicializa el array con datos de ejemplo (se ejecuta una sola vez).
-     */
-    private static function init(): void
-    {
-        if (self::$initialized) {
-            return;
-        }
-
-        self::$users = [
-            new self(1, 'Alice',   'alice@example.com',   30),
-            new self(2, 'Bob',     'bob@example.com',     25),
-            new self(3, 'Charlie', 'charlie@example.com', 35),
-        ];
-
-        self::$initialized = true;
-    }
 
 
 
