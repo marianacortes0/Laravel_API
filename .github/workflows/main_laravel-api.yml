@@ -43,6 +43,18 @@ jobs:
           php artisan config:cache
           php artisan route:cache
 
+      - name: Create startup script
+        run: |
+          cat > startup.sh << 'EOF'
+          #!/bin/bash
+          cd /home/site/wwwroot
+          php artisan migrate --force
+          php artisan config:cache
+          php artisan route:cache
+          php artisan storage:link
+          EOF
+          chmod +x startup.sh
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -69,15 +81,6 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_BC3424B25C954BA4AB4A0E6EED36784D }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_242C78D279BA4B06B828DAE9D57351D4 }}
 
-      - name: Set startup command
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            az webapp config set \
-              --resource-group DefaultResourceGroup-EUS \
-              --name laravel-api \
-              --startup-file "cp /home/site/wwwroot/.env.example /home/site/wwwroot/.env; php /home/site/wwwroot/artisan serve --host=0.0.0.0 --port=8080"
-
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
@@ -85,8 +88,19 @@ jobs:
           slot-name: 'Production'
           package: .
 
-      - name: Run migrations
+      - name: Set startup command
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            az webapp ssh --resource-group DefaultResourceGroup-EUS --name laravel-api --command "php artisan migrate --force"
+            az webapp config set \
+              --resource-group DefaultResourceGroup-EUS \
+              --name laravel-api \
+              --startup-file "/home/site/wwwroot/startup.sh"
+
+      - name: Restart app to trigger startup
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az webapp restart \
+              --resource-group DefaultResourceGroup-EUS \
+              --name laravel-api
