@@ -89,4 +89,4 @@ jobs:
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            az webapp ssh --resource-group <TU_RESOURCE_GROUP> --name laravel-api --command "php artisan migrate --force"
+            az webapp ssh --resource-group DefaultResourceGroup-EUS --name laravel-api --command "php artisan migrate --force"
