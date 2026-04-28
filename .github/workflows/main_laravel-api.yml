@@ -74,7 +74,7 @@ jobs:
         with:
           inlineScript: |
             az webapp config set \
-              --resource-group <TU_RESOURCE_GROUP> \
+              --resource-group DefaultResourceGroup-EUS \
               --name laravel-api \
               --startup-file "cp /home/site/wwwroot/.env.example /home/site/wwwroot/.env; php /home/site/wwwroot/artisan serve --host=0.0.0.0 --port=8080"
 
