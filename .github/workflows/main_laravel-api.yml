@@ -117,16 +117,6 @@ jobs:
           slot-name: 'Production'
           package: .
 
-      - name: Run migrations via Kudu
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            az rest \
-              --method post \
-              --url "https://laravel-api.scm.azurewebsites.net/api/command" \
-              --headers "Content-Type=application/json" \
-              --body "{\"command\":\"php artisan migrate --force\",\"dir\":\"D:\\\\home\\\\site\\\\wwwroot\"}"
-
       - name: Restart app
         uses: azure/CLI@v1
         with:
