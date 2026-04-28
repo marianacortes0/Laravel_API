@@ -66,18 +66,6 @@ jobs:
           </configuration>
           EOF
 
-      - name: Create startup script
-        run: |
-          cat > startup.sh << 'EOF'
-          #!/bin/bash
-          cd /home/site/wwwroot
-          php artisan migrate --force
-          php artisan config:cache
-          php artisan route:cache
-          php artisan storage:link
-          EOF
-          chmod +x startup.sh
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -104,25 +92,20 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_BC3424B25C954BA4AB4A0E6EED36784D }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_242C78D279BA4B06B828DAE9D57351D4 }}
 
-      - name: Set PHP version and variables
+      - name: Set app settings
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            az webapp config set \
-              --resource-group DefaultResourceGroup-EUS \
-              --name laravel-api \
-              --php-version 8.3
-
             az webapp config appsettings set \
               --resource-group DefaultResourceGroup-EUS \
               --name laravel-api \
               --settings \
-                APP_ENV=production \
-                APP_DEBUG=false \
+                APP_ENV="production" \
+                APP_DEBUG="false" \
                 APP_URL="${{ secrets.APP_URL }}" \
-                DB_CONNECTION=mysql \
+                DB_CONNECTION="mysql" \
                 DB_HOST="${{ secrets.DB_HOST }}" \
-                DB_PORT=3306 \
+                DB_PORT="3306" \
                 DB_DATABASE="${{ secrets.DB_DATABASE }}" \
                 DB_USERNAME="${{ secrets.DB_USERNAME }}" \
                 DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
@@ -134,14 +117,15 @@ jobs:
           slot-name: 'Production'
           package: .
 
-      - name: Set startup command
+      - name: Run migrations via Kudu
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            az webapp config set \
-              --resource-group DefaultResourceGroup-EUS \
-              --name laravel-api \
-              --startup-file "/home/site/wwwroot/startup.sh"
+            az rest \
+              --method post \
+              --url "https://laravel-api.scm.azurewebsites.net/api/command" \
+              --headers "Content-Type=application/json" \
+              --body "{\"command\":\"php artisan migrate --force\",\"dir\":\"D:\\\\home\\\\site\\\\wwwroot\"}"
 
       - name: Restart app
         uses: azure/CLI@v1
