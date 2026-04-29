@@ -1,8 +1,3 @@
-databases:
-  - name: laravel-db
-    databaseName: laravel
-    plan: free
-
 services:
   - type: web
     name: laravel-api
@@ -23,27 +18,7 @@ services:
       - key: LOG_CHANNEL
         value: stderr
       - key: DB_CONNECTION
-        value: pgsql
-      - key: DB_HOST
-        fromDatabase:
-          name: laravel-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: laravel-db
-          property: port
-      - key: DB_DATABASE
-        fromDatabase:
-          name: laravel-db
-          property: database
-      - key: DB_USERNAME
-        fromDatabase:
-          name: laravel-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: laravel-db
-          property: password
+        value: "null"
       - key: SESSION_DRIVER
         value: cookie
       - key: CACHE_STORE
