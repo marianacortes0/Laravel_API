@@ -5,7 +5,8 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     libzip-dev \
-    && docker-php-ext-install zip
+    libpq-dev \
+    && docker-php-ext-install zip pdo pdo_pgsql pgsql
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -14,6 +15,9 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader
 
-EXPOSE 10000
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
-CMD php artisan serve --host=0.0.0.0 --port=10000
+EXPOSE 8080
+
+CMD ["/start.sh"]
