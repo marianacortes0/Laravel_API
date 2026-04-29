@@ -2,132 +2,117 @@
 
 namespace App\Models;
 
-/**
- * Modelo User
- * 
- * Equivalente al interface User + array users[] de TypeScript.
- * Simula una base de datos en memoria con un array estático.
- */
-class User
+use JsonSerializable;
+
+class User implements JsonSerializable
 {
     public int $id;
     public string $name;
     public string $email;
     public int $age;
 
-    public function __construct(int $id, string $name, string $email, int $age)
+    public function __construct(array $attrs = [])
     {
-        $this->id    = $id;
-        $this->name  = $name;
-        $this->email = $email;
-        $this->age   = $age;
+        $this->id    = (int) ($attrs['id']    ?? 0);
+        $this->name  = (string) ($attrs['name']  ?? '');
+        $this->email = (string) ($attrs['email'] ?? '');
+        $this->age   = (int) ($attrs['age']   ?? 0);
     }
 
-    // -------------------------------------------------------
-    // "Base de datos" simulada (equivalente al array users[])
-    // -------------------------------------------------------
-
-    /** @var self[] */
-    private static array $users = [];
-
-    private static bool $initialized = false;
-
-    /**
-     * Inicializa el array con datos de ejemplo (se ejecuta una sola vez).
-     */
-    private static function init(): void
+    private static function file(): string
     {
-        if (self::$initialized) {
-            return;
+        return sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'laravel-api-users-' . getmypid() . '.json';
+    }
+
+    private static function load(): array
+    {
+        $file = self::file();
+        if (!file_exists($file)) {
+            $seed = [
+                ['id' => 1, 'name' => 'Alice',   'email' => 'alice@example.com',   'age' => 30],
+                ['id' => 2, 'name' => 'Bob',     'email' => 'bob@example.com',     'age' => 25],
+                ['id' => 3, 'name' => 'Charlie', 'email' => 'charlie@example.com', 'age' => 35],
+            ];
+            self::persist($seed, 4);
+            return ['users' => $seed, 'nextId' => 4];
         }
-
-        self::$users = [
-            new self(1, 'Alice',   'alice@example.com',   30),
-            new self(2, 'Bob',     'bob@example.com',     25),
-            new self(3, 'Charlie', 'charlie@example.com', 35),
-        ];
-
-        self::$initialized = true;
+        return json_decode(file_get_contents($file), true);
     }
 
-    // -------------------------------------------------------
-    // Métodos de acceso al "repositorio"
-    // -------------------------------------------------------
+    private static function persist(array $users, int $nextId): void
+    {
+        file_put_contents(self::file(), json_encode(['users' => $users, 'nextId' => $nextId]));
+    }
 
-    /** Devuelve todos los usuarios. */
     public static function all(): array
     {
-        self::init();
-        return array_values(self::$users);
+        return array_map(fn($u) => new self($u), self::load()['users']);
     }
 
-    /** Busca un usuario por ID. Retorna null si no existe. */
     public static function find(int $id): ?self
     {
-        self::init();
-        foreach (self::$users as $user) {
-            if ($user->id === $id) {
-                return $user;
+        foreach (self::load()['users'] as $u) {
+            if ($u['id'] === $id) {
+                return new self($u);
             }
         }
         return null;
     }
 
-    /** Crea y persiste un nuevo usuario. */
-    public static function create(string $name, string $email, int $age): self
+    public static function create(array $attrs): self
     {
-        self::init();
-
-        $newId = count(self::$users) > 0
-            ? max(array_map(fn($u) => $u->id, self::$users)) + 1
-            : 1;
-
-        $user = new self($newId, $name, $email, $age);
-        self::$users[] = $user;
-
-        return $user;
+        $state = self::load();
+        $new = [
+            'id'    => $state['nextId'],
+            'name'  => (string) $attrs['name'],
+            'email' => (string) $attrs['email'],
+            'age'   => (int) $attrs['age'],
+        ];
+        $state['users'][] = $new;
+        self::persist($state['users'], $state['nextId'] + 1);
+        return new self($new);
     }
 
-    /**
-     * Actualiza los campos proporcionados de un usuario existente.
-     * Retorna el usuario actualizado o null si no existe.
-     */
-    public static function update(int $id, array $data): ?self
+    public static function where(string $field, mixed $value): object
     {
-        self::init();
+        $found = array_filter(self::load()['users'], fn($u) => ($u[$field] ?? null) === $value);
 
-        foreach (self::$users as $user) {
-            if ($user->id === $id) {
-                if (isset($data['name']))  $user->name  = $data['name'];
-                if (isset($data['email'])) $user->email = $data['email'];
-                if (isset($data['age']))   $user->age   = (int) $data['age'];
-                return $user;
+        return new class($found) {
+            public function __construct(private array $found) {}
+            public function exists(): bool { return count($this->found) > 0; }
+        };
+    }
+
+    public function update(array $attrs): self
+    {
+        $state = self::load();
+        foreach ($state['users'] as &$u) {
+            if ($u['id'] === $this->id) {
+                foreach (['name', 'email', 'age'] as $f) {
+                    if (array_key_exists($f, $attrs)) {
+                        $u[$f]       = $f === 'age' ? (int) $attrs[$f] : (string) $attrs[$f];
+                        $this->{$f}  = $u[$f];
+                    }
+                }
+                break;
             }
         }
-
-        return null;
+        self::persist($state['users'], $state['nextId']);
+        return $this;
     }
 
-    /**
-     * Elimina un usuario por ID.
-     * Retorna true si fue eliminado, false si no existía.
-     */
-    public static function delete(int $id): bool
+    public function delete(): bool
     {
-        self::init();
-
-        foreach (self::$users as $index => $user) {
-            if ($user->id === $id) {
-                array_splice(self::$users, $index, 1);
-                return true;
-            }
-        }
-
-        return false;
+        $state = self::load();
+        $state['users'] = array_values(array_filter(
+            $state['users'],
+            fn($u) => $u['id'] !== $this->id
+        ));
+        self::persist($state['users'], $state['nextId']);
+        return true;
     }
 
-    /** Serializa el objeto a array (útil para json()). */
-    public function toArray(): array
+    public function jsonSerialize(): array
     {
         return [
             'id'    => $this->id,

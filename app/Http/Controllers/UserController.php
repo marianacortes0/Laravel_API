@@ -10,8 +10,7 @@ class UserController
 {
     public function index(): JsonResponse
     {
-        $users = array_map(fn(User $u) => $u->toArray(), User::all());
-        return response()->json($users);
+        return response()->json(User::all());
     }
 
     public function show(int $id): JsonResponse
@@ -22,7 +21,7 @@ class UserController
             return response()->json(['error' => 'Usuario no encontrado'], 404);
         }
 
-        return response()->json($user->toArray());
+        return response()->json($user);
     }
 
     public function store(Request $request): JsonResponse
@@ -33,29 +32,46 @@ class UserController
             return response()->json(['error' => 'name, email y age son requeridos'], 400);
         }
 
-        $user = User::create($data['name'], $data['email'], (int) $data['age']);
-        return response()->json($user->toArray(), 201);
+        if (User::where('email', $data['email'])->exists()) {
+            return response()->json(['error' => 'El email ya está registrado'], 409);
+        }
+
+        $user = User::create([
+            'name'  => $data['name'],
+            'email' => $data['email'],
+            'age'   => (int) $data['age'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Usuario creado exitosamente',
+            'data'    => $user,
+        ], 201);
     }
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $data = $request->json()->all();
-        $user = User::update($id, $data);
+        $user = User::find($id);
 
         if (!$user) {
             return response()->json(['error' => 'Usuario no encontrado'], 404);
         }
 
-        return response()->json($user->toArray());
+        $data = array_filter($request->json()->all(), fn($v) => $v !== null);
+        $user->update($data);
+
+        return response()->json($user);
     }
 
     public function destroy(int $id): JsonResponse
     {
-        $deleted = User::delete($id);
+        $user = User::find($id);
 
-        if (!$deleted) {
+        if (!$user) {
             return response()->json(['error' => 'Usuario no encontrado'], 404);
         }
+
+        $user->delete();
 
         return response()->json(['message' => 'Usuario eliminado']);
     }
